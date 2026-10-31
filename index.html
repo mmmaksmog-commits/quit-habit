@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Без привычки — трекер отказа</title>
+  <meta name="description" content="Бросаете курить, сладкое или соцсети? Таймер, сэкономленные деньги, этапы восстановления и рекорды.">
+  <meta name="theme-color" content="#0d1b16">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #0d1b16; --card: #13261f; --card2: #1a3329; --line: #24443a; --text: #eafaf2; --muted: #93b5a6; --green: #34d399; --gold: #fcd34d; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: radial-gradient(circle at 50% -20%, #1e4d3d, var(--bg) 60%); background-color: var(--bg); color: var(--text); font: 16px/1.5 Inter, system-ui, sans-serif; }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 620px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+    .tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .tab { flex: none; display: flex; align-items: center; gap: 6px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-weight: 600; font-size: 14px; }
+    .tab.on { background: var(--green); border-color: var(--green); color: #052e1f; }
+    .hero { margin-top: 18px; padding: 24px 20px; border-radius: 28px; background: linear-gradient(160deg, var(--card2), var(--card)); text-align: center; }
+    .hero__emoji { font-size: 52px; }
+    .hero h1 { margin: 4px 0 0; font-size: 18px; font-weight: 600; color: var(--muted); }
+    .timer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0 6px; }
+    .timer div { padding: 12px 4px; border-radius: 18px; background: rgba(0, 0, 0, 0.25); }
+    .timer b { display: block; font: 800 clamp(26px, 8vw, 38px)/1.05 Unbounded, sans-serif; font-variant-numeric: tabular-nums; }
+    .timer span { color: var(--muted); font-size: 12px; }
+    .since { margin: 0; color: var(--muted); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .stat { padding: 16px; border-radius: 22px; background: var(--card); }
+    .stat b { display: block; font: 800 24px Unbounded, sans-serif; color: var(--green); }
+    .stat.gold b { color: var(--gold); }
+    .stat span { color: var(--muted); font-size: 13px; }
+    h2 { margin: 26px 0 12px; font-size: 18px; }
+    .milestones { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .ms { position: relative; display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px; border-radius: 18px; background: var(--card); overflow: hidden; }
+    .ms i { font-style: normal; font-size: 24px; text-align: center; opacity: 0.4; }
+    .ms.done i { opacity: 1; }
+    .ms b { display: block; font-size: 15px; }
+    .ms small { color: var(--muted); }
+    .ms__bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--green); }
+    .ms.done { background: var(--card2); }
+    .ms.done b::after { content: ' ✓'; color: var(--green); }
+    .rewards { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    .reward { padding: 14px; border-radius: 18px; background: var(--card); text-align: center; }
+    .reward span { font-size: 30px; }
+    .reward b { display: block; font-size: 14px; }
+    .reward small { color: var(--muted); }
+    .reward .bar { height: 5px; margin-top: 8px; border-radius: 3px; background: var(--card2); overflow: hidden; }
+    .reward .bar i { display: block; height: 100%; background: var(--gold); }
+    .reward.ok { box-shadow: inset 0 0 0 2px var(--gold); }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 22px; }
+    .btn { padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); font-weight: 700; }
+    .btn--green { border: 0; background: var(--green); color: #052e1f; }
+    .btn--danger { color: #fca5a5; }
+    .sheet { position: fixed; inset: 0; z-index: 10; display: grid; place-items: end center; background: rgba(0, 0, 0, 0.6); }
+    @media (min-width: 640px) { .sheet { place-items: center; } }
+    .sheet__box { display: grid; gap: 12px; width: min(520px, 100%); max-height: 92dvh; overflow-y: auto; padding: 22px 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; background: var(--card); }
+    @media (min-width: 640px) { .sheet__box { border-radius: 26px; } }
+    .sheet h3 { margin: 0; font-size: 20px; }
+    .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .type { padding: 12px 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--card2); font-size: 13px; font-weight: 600; }
+    .type span { display: block; font-size: 24px; }
+    .type.on { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+    .field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .field input { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); font-size: 16px; color: var(--text); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <nav class="tabs" id="tabs"></nav>
+    <div id="view"></div>
+  </main>
+
+  <div class="sheet" id="sheet" hidden>
+    <form class="sheet__box" id="form">
+      <h3>От чего отказываемся?</h3>
+      <div class="types" id="types"></div>
+      <div class="row2">
+        <label class="field">Тратится в день, ₽<input id="cost" type="number" min="0" step="10" required></label>
+        <label class="field" id="unitsField">Сигарет в день<input id="units" type="number" min="0" step="1"></label>
+      </div>
+      <label class="field">Когда бросили<input id="since" type="datetime-local" required></label>
+      <div class="actions" style="margin-top:4px"><button type="button" class="btn" id="cancel">Отмена</button><button class="btn btn--green" type="submit">Начать</button></div>
+    </form>
+  </div>
+
+  <script>
+    const TYPES = {
+      smoke: { e: '🚭', n: 'Курение', cost: 250, units: 'Сигарет в день', unitWord: 'сигарет', unitsDefault: 15 },
+      sweet: { e: '🍬', n: 'Сладкое', cost: 150, units: 'Сладостей в день', unitWord: 'сладостей', unitsDefault: 3 },
+      alcohol: { e: '🍷', n: 'Алкоголь', cost: 300, units: 'Порций в день', unitWord: 'порций', unitsDefault: 2 },
+      social: { e: '📱', n: 'Соцсети', cost: 0, units: 'Часов в день', unitWord: 'часов', unitsDefault: 3 },
+      fastfood: { e: '🍔', n: 'Фастфуд', cost: 400, units: 'Раз в день', unitWord: 'перекусов', unitsDefault: 1 },
+      energy: { e: '⚡', n: 'Энергетики', cost: 150, units: 'Банок в день', unitWord: 'банок', unitsDefault: 1 },
+    };
+    // Этапы восстановления после отказа от курения — по данным ВОЗ; для остальных привычек — этапы мотивации
+    const MILESTONES = {
+      smoke: [[20 / 60, '❤️', 'Пульс и давление приходят в норму'], [12, '🫁', 'Уровень угарного газа в крови нормализуется'], [48, '👃', 'Начинают восстанавливаться вкус и обоняние'], [72, '💨', 'Дышать становится легче'], [14 * 24, '🩸', 'Улучшается кровообращение'], [30 * 24, '🏃', 'Меньше кашля и одышки'], [365 * 24, '💪', 'Риск ишемической болезни сердца снижается вдвое']],
+      default: [[24, '🌅', 'Первые сутки — самые сложные позади'], [72, '🔥', 'Три дня: тяга становится слабее'], [7 * 24, '⭐', 'Неделя! Новая привычка начинает формироваться'], [21 * 24, '🧠', '21 день: мозг перестраивается'], [30 * 24, '🏅', 'Месяц свободы'], [90 * 24, '🏆', 'Три месяца — привычка почти побеждена'], [365 * 24, '👑', 'Целый год!']],
+    };
+    const REWARDS = [['☕', 'Кофе', 250], ['🎬', 'Кино', 600], ['🍕', 'Пицца', 900], ['📚', 'Книга', 1200], ['🎧', 'Наушники', 8000], ['👟', 'Кроссовки', 12000], ['✈️', 'Отпуск', 80000]];
+    const $ = (id) => document.getElementById(id);
+    const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem('quit_' + k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('quit_' + k, JSON.stringify(v)); } catch {} } };
+    let habits = store.get('habits', null);
+    if (!habits) { habits = [{ id: 1, type: 'smoke', cost: 250, units: 15, since: Date.now() - (9 * 864e5 + 5 * 36e5 + 17 * 6e4), best: 0, relapses: 0 }]; }
+    let active = store.get('active', habits[0]?.id);
+    let formType = 'smoke';
+    const save = () => { store.set('habits', habits); store.set('active', active); };
+    const nf = (n) => Math.floor(n).toLocaleString('ru-RU');
+    const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c; };
+
+    function renderTabs() {
+      $('tabs').innerHTML = habits.map((h) => `<button class="tab ${h.id === active ? 'on' : ''}" data-h="${h.id}">${TYPES[h.type].e} ${TYPES[h.type].n}</button>`).join('') + '<button class="tab" id="addBtn">＋ Добавить</button>';
+    }
+    function render() {
+      const h = habits.find((x) => x.id === active);
+      if (!h) { $('view').innerHTML = '<div class="hero"><p>Добавьте привычку, от которой хотите отказаться</p></div>'; return; }
+      const T = TYPES[h.type];
+      const ms = Date.now() - h.since;
+      const days = ms / 864e5, hours = ms / 36e5;
+      const saved = days * h.cost;
+      const avoided = days * h.units;
+      const list = MILESTONES[h.type] || MILESTONES.default;
+      $('view').innerHTML = `
+        <section class="hero">
+          <div class="hero__emoji">${T.e}</div>
+          <h1>Без привычки «${T.n}»</h1>
+          <div class="timer">
+            <div><b>${Math.floor(days)}</b><span>${plural(Math.floor(days), 'день', 'дня', 'дней')}</span></div>
+            <div><b>${String(Math.floor(hours % 24)).padStart(2, '0')}</b><span>часов</span></div>
+            <div><b>${String(Math.floor((ms / 6e4) % 60)).padStart(2, '0')}</b><span>минут</span></div>
+            <div><b>${String(Math.floor((ms / 1e3) % 60)).padStart(2, '0')}</b><span>секунд</span></div>
+          </div>
+          <p class="since">С ${new Date(h.since).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+        </section>
+        <div class="grid">
+          <div class="stat gold"><b>${nf(saved)} ₽</b><span>сэкономлено</span></div>
+          <div class="stat"><b>${nf(avoided)}</b><span>${T.unitWord} не случилось</span></div>
+          <div class="stat"><b>${Math.max(h.best, Math.floor(days))}</b><span>рекорд, дней</span></div>
+          <div class="stat"><b>${nf(saved / Math.max(days, 1) * 365)} ₽</b><span>сэкономите за год</span></div>
+        </div>
+        <h2>Этапы</h2>
+        <ul class="milestones">${list.map(([hr, e, text]) => {
+          const p = Math.min(1, hours / hr);
+          const left = hr - hours;
+          const when = left <= 0 ? 'достигнуто' : left < 24 ? `через ${Math.ceil(left)} ч` : `через ${Math.ceil(left / 24)} ${plural(Math.ceil(left / 24), 'день', 'дня', 'дней')}`;
+          return `<li class="ms ${p >= 1 ? 'done' : ''}"><i>${e}</i><div><b>${text}</b><small>${hr < 1 ? `${Math.round(hr * 60)} минут` : hr < 48 ? `${hr} часов` : `${Math.round(hr / 24)} ${plural(Math.round(hr / 24), 'день', 'дня', 'дней')}`} · ${when}</small></div><span class="ms__bar" style="width:${p * 100}%"></span></li>`;
+        }).join('')}</ul>
+        ${h.cost ? `<h2>На что хватит сэкономленного</h2>
+        <div class="rewards">${REWARDS.map(([e, n, price]) => { const p = Math.min(1, saved / price); return `<div class="reward ${p >= 1 ? 'ok' : ''}"><span>${e}</span><b>${n}</b><small>${p >= 1 ? `можно купить ×${Math.floor(saved / price)}` : `${nf(price)} ₽`}</small><div class="bar"><i style="width:${p * 100}%"></i></div></div>`; }).join('')}</div>` : ''}
+        <div class="actions"><button class="btn btn--danger" id="relapse">Был срыв 😔</button><button class="btn" id="remove">Удалить</button></div>
+        <p class="since" style="text-align:center;margin-top:12px">${h.relapses ? `Срывов: ${h.relapses}. Это нормально — главное, что вы снова в пути.` : 'Ни одного срыва. Так держать!'}</p>`;
+    }
+    function tick() {
+      // обновляем только таймер, чтобы не терять прокрутку
+      const h = habits.find((x) => x.id === active);
+      const t = document.querySelector('.timer');
+      if (!h || !t) return;
+      const ms = Date.now() - h.since;
+      const b = t.querySelectorAll('b');
+      b[2].textContent = String(Math.floor((ms / 6e4) % 60)).padStart(2, '0');
+      b[3].textContent = String(Math.floor((ms / 1e3) % 60)).padStart(2, '0');
+      if (Math.floor((ms / 1e3) % 60) === 0) render();
+    }
+
+    function openForm() {
+      formType = 'smoke';
+      const d = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4);
+      $('since').value = d.toISOString().slice(0, 16);
+      renderTypes();
+      $('sheet').hidden = false;
+    }
+    function renderTypes() {
+      $('types').innerHTML = Object.entries(TYPES).map(([k, t]) => `<button type="button" class="type ${k === formType ? 'on' : ''}" data-t="${k}"><span>${t.e}</span>${t.n}</button>`).join('');
+      const T = TYPES[formType];
+      $('cost').value = T.cost; $('units').value = T.unitsDefault;
+      $('unitsField').firstChild.textContent = T.units;
+    }
+    $('types').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) { formType = b.dataset.t; renderTypes(); } });
+    $('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const since = new Date($('since').value).getTime();
+      if (since > Date.now()) { alert('Дата не может быть в будущем'); return; }
+      const h = { id: Date.now(), type: formType, cost: +$('cost').value || 0, units: +$('units').value || 0, since, best: 0, relapses: 0 };
+      habits.push(h); active = h.id; save();
+      $('sheet').hidden = true;
+      renderTabs(); render();
+    });
+    $('cancel').onclick = () => { $('sheet').hidden = true; };
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-h]');
+      if (tab) { active = +tab.dataset.h; save(); renderTabs(); render(); }
+      if (e.target.closest('#addBtn')) openForm();
+      if (e.target.closest('#relapse')) {
+        const h = habits.find((x) => x.id === active);
+        if (!confirm('Начать отсчёт заново? Рекорд сохранится.')) return;
+        h.best = Math.max(h.best, Math.floor((Date.now() - h.since) / 864e5));
+        h.relapses++; h.since = Date.now(); save(); render();
+      }
+      if (e.target.closest('#remove')) {
+        if (!confirm('Удалить этот трекер?')) return;
+        habits = habits.filter((x) => x.id !== active); active = habits[0]?.id; save(); renderTabs(); render();
+      }
+    });
+    renderTabs(); render();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
